@@ -1,0 +1,33 @@
+{
+  "name": "AI Workflows (n8n + Dify)",
+
+  "dockerComposeFile": [
+    "../dify/docker/docker-compose.yaml",
+    "docker-compose.override.yml"
+  ],
+  "service": "workspace",
+  "workspaceFolder": "/workspace",
+
+  "forwardPorts": [5678, 80],
+
+  "portsAttributes": {
+    "5678": {
+      "label": "n8n",
+      "onAutoForward": "notify"
+    },
+    "80": {
+      "label": "Dify",
+      "onAutoForward": "notify"
+    }
+  },
+
+  "postCreateCommand": "echo 'n8n: http://localhost:5678 | Dify: http://localhost'",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  }
+}

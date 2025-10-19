@@ -1,0 +1,13 @@
+# Dify repository (manually cloned)
+dify/
+
+# Environment files
+.env
+*.env.local
+
+# Docker volumes
+volumes/
+
+# OS files
+.DS_Store
+Thumbs.db
