@@ -20,19 +20,18 @@ prompts:
 
 # モデル設定
 #
-# サブスクリプション認証を使用する場合:
+# Claude Code: サブスクリプション認証対応
 # - CLAUDE_CODE_OAUTH_TOKEN: Claude Pro/Max サブスクリプション用トークン
 #   取得方法: claude setup-token を実行
-# - OPENAI_API_KEY: OpenAI APIキー（Codex用）
-#   または、codex CLI経由での認証
+# - または ANTHROPIC_API_KEY: API従量課金
 #
-# API従量課金を使用する場合:
-# - ANTHROPIC_API_KEY: Anthropic APIキー
-# - OPENAI_API_KEY: OpenAI APIキー
+# Codex: カスタムプロバイダー経由でCLI呼び出し
+# - codex auth で認証（サブスクリプション使用）
+# - または OPENAI_API_KEY: API従量課金（標準プロバイダー使用時）
 providers:
   # Claude Code (Claude Agent SDK)
   # サブスクリプション: Pro ($20/月) または Max ($100-200/月)
-  # 認証: CLAUDE_CODE_OAUTH_TOKEN または ANTHROPIC_API_KEY
+  # 認証: claude login → claude setup-token → CLAUDE_CODE_OAUTH_TOKEN
   - id: anthropic:claude-agent-sdk
     label: Claude Code
     config:
@@ -41,10 +40,10 @@ providers:
       max_tokens: 2000
       # working_dir: ./  # 必要に応じて作業ディレクトリを指定
 
-  # Codex (OpenAI)
+  # Codex (カスタムプロバイダー経由でCLI呼び出し)
   # サブスクリプション: ChatGPT Plus ($20/月) または Pro ($200/月)
-  # 認証: OPENAI_API_KEY（サブスクリプション or API従量課金）
-  - id: openai:codex-mini-latest
+  # 認証: codex auth（ブラウザ経由でログイン）
+  - id: file://./codex-provider.js
     label: Codex
     config:
       temperature: 0.7

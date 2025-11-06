@@ -46,13 +46,9 @@ npm install -g promptfoo
 
 ### 3. 認証の設定
 
-2つの認証方法があります：
+#### Claude Code（サブスクリプション認証対応 ✅）
 
-#### オプションA: サブスクリプション認証（推奨）
-
-Claude Pro/MaxまたはChatGPT Plus/Proのサブスクリプションを使用します。
-
-**Claude Codeの認証:**
+Claude Agent SDKは**サブスクリプション認証に対応**しています。
 
 ```bash
 # 1. Claude Code CLIでログイン
@@ -70,24 +66,30 @@ export CLAUDE_CODE_OAUTH_TOKEN="生成されたトークン"
 echo "CLAUDE_CODE_OAUTH_TOKEN=your-token-here" >> .env
 ```
 
-**Codexの認証:**
+**サブスクリプションプラン:**
+- **Pro**: $20/月（10-40プロンプト/5時間）
+- **Max**: $100/月（5x Pro）または $200/月（20x Pro）
+
+#### Codex（カスタムプロバイダー経由 ✅）
+
+promptfooは標準でCodex CLIをサポートしていないため、**カスタムプロバイダー（codex-provider.js）** を実装しています。
 
 ```bash
 # Codex CLIで認証（ブラウザが開きます）
 codex auth
 
-# 環境変数は自動的に設定されます
+# 環境変数は不要（CLI経由で自動認証）
 ```
 
 **サブスクリプションプラン:**
-- **Claude Code**: Pro ($20/月) または Max ($100-200/月)
-- **Codex**: ChatGPT Plus ($20/月) または Pro ($200/月)
+- **ChatGPT Plus**: $20/月（30-150メッセージ/5時間）
+- **ChatGPT Pro**: $200/月（300-1,500メッセージ/5時間）
 
 > ⚠️ **注意**: promptfoo経由での実行もサブスクリプションのusage限度にカウントされます。
 
-#### オプションB: API従量課金
+#### 代替: API従量課金
 
-サブスクリプションの代わりに、API従量課金を使用できます（約$3程度で完了）。
+サブスクリプションの代わりに、API従量課金も使用できます（約$3程度で完了）。
 
 **Linux / macOS:**
 ```bash
@@ -315,24 +317,31 @@ commandLineOptions:
 - Claude Code: Pro/Maxサブスクリプション または Anthropic API
 - Codex: ChatGPT Plus/Pro または OpenAI API
 
-## 既知の制限事項
+## プロジェクト構成
 
-### サブスクリプション認証について
-
-**重要**: promptfooは現在、TypeScript版のClaude Agent SDKを使用しており、`CLAUDE_CODE_OAUTH_TOKEN`のサポートが完全ではありません。
-
-**推奨される回避策:**
-1. **API従量課金を使用** - 最もシンプルで確実（約$3で完了）
-2. **Claude Code CLIを直接使用** - promptfooを使わず、カスタムスクリプトで実装
-
-```bash
-# カスタムスクリプトの例
-for prompt in prompts/*.txt; do
-  claude "$(cat $prompt)" < code.py
-done
+```
+ai-workflows/
+├── promptfooconfig.yaml    # promptfoo設定ファイル
+├── codex-provider.js        # Codex用カスタムプロバイダー
+├── package.json             # 依存関係
+├── README.md                # このファイル
+└── .env                     # 環境変数（要作成）
 ```
 
-このサンプルはサブスクリプション認証での動作を前提としていますが、実際にはAPI従量課金の方が確実に動作します。
+### カスタムプロバイダーについて
+
+**codex-provider.js** - Codex CLI を呼び出すカスタムプロバイダー
+
+promptfooは標準でCodex CLIをサポートしていないため、カスタムプロバイダーを実装しています。このプロバイダーは：
+
+- `codex exec -` コマンドを使用してCodex CLIを呼び出し
+- サブスクリプション認証（`codex auth`）を使用
+- promptfooのテストフレームワークと統合
+
+**実装の詳細:**
+- stdin経由でプロンプトを送信
+- stdout から結果を受信
+- エラーハンドリング付き
 
 ## 次のステップ
 
