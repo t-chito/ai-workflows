@@ -1,367 +1,72 @@
-# promptfoo コードレビュー評価サンプル
+# promptfoo コードレビュー評価
 
-promptfooを使用したコードレビュープロンプトの評価サンプル実装です。
+promptfooでClaude CodeとCodexを使ってコードレビュープロンプトを評価します。
 
-## 概要
+## クイックスタート
 
-このプロジェクトでは、5種類のコードレビュープロンプトを2つのLLMモデル（**Claude Code**、**Codex**）で評価し、最適なプロンプト設計を見つけることを目的としています。
-
-### 評価対象
-
-**プロンプト（5種類）:**
-1. 基本レビュー - シンプルなコードレビュー依頼
-2. ベストプラクティス - モデルの判断に任せるレビュー
-3. リーダブルコード準拠 - リーダブルコードの原則に従ったレビュー
-4. 整理後レビュー - 観点を整理してからレビュー
-5. 具体的観点付き - 詳細な観点を提示してレビュー
-
-**モデル（2種類）:**
-- **Claude Code** (Anthropic Claude Agent SDK)
-- **Codex** (OpenAI codex-mini-latest)
-
-**テストケース（2個）:**
-1. 変数名が不明瞭なPython関数
-2. エラーハンドリングが不十分なJavaScript関数
-
-**実行回数:**
-- 各組み合わせを3回実行（出力の揺れを確認）
-
-## セットアップ
-
-### 1. 前提条件
-
-- Node.js 18以上がインストールされていること
-- Claude Code APIキー または Claude Pro/Maxサブスクリプション
-- OpenAI APIキー または ChatGPT Plus/Proサブスクリプション
-
-### 2. promptfooと依存関係のインストール
+### 1. インストール
 
 ```bash
-# プロジェクト内の依存関係をインストール
 npm install
-
-# または、グローバルインストール
-npm install -g promptfoo
 ```
 
-### 3. 認証の設定
+### 2. 認証
 
-#### Claude Code（サブスクリプション認証対応 ✅）
-
-Claude Agent SDKは**サブスクリプション認証に対応**しています。
-
+#### Claude Code
 ```bash
-# 1. Claude Code CLIでログイン
 claude login
-
-# 2. OAuthトークンを生成
 claude setup-token
-
-# 3. トークンを環境変数に設定
-export CLAUDE_CODE_OAUTH_TOKEN="生成されたトークン"
+export CLAUDE_CODE_OAUTH_TOKEN="表示されたトークン"
 ```
 
-または、.envファイルに記載：
+#### Codex
 ```bash
-echo "CLAUDE_CODE_OAUTH_TOKEN=your-token-here" >> .env
-```
-
-**サブスクリプションプラン:**
-- **Pro**: $20/月（10-40プロンプト/5時間）
-- **Max**: $100/月（5x Pro）または $200/月（20x Pro）
-
-#### Codex（カスタムプロバイダー経由 ✅）
-
-promptfooは標準でCodex CLIをサポートしていないため、**カスタムプロバイダー（codex-provider.js）** を実装しています。
-
-```bash
-# Codex CLIで認証（ブラウザが開きます）
 codex auth
-
-# 環境変数は不要（CLI経由で自動認証）
 ```
 
-**サブスクリプションプラン:**
-- **ChatGPT Plus**: $20/月（30-150メッセージ/5時間）
-- **ChatGPT Pro**: $200/月（300-1,500メッセージ/5時間）
-
-> ⚠️ **注意**: promptfoo経由での実行もサブスクリプションのusage限度にカウントされます。
-
-#### 代替: API従量課金
-
-サブスクリプションの代わりに、API従量課金も使用できます（約$3程度で完了）。
-
-**Linux / macOS:**
-```bash
-export ANTHROPIC_API_KEY="your-anthropic-api-key"
-export OPENAI_API_KEY="your-openai-api-key"
-```
-
-**Windows (PowerShell):**
-```powershell
-$env:ANTHROPIC_API_KEY="your-anthropic-api-key"
-$env:OPENAI_API_KEY="your-openai-api-key"
-```
-
-**または、.envファイルに記載:**
-```bash
-echo "ANTHROPIC_API_KEY=your-api-key" >> .env
-echo "OPENAI_API_KEY=your-api-key" >> .env
-```
-
-**料金:**
-- **Anthropic API**: Claude Sonnet 4 - $3/1M入力トークン
-- **OpenAI API**: codex-mini-latest - $1.50/1M入力トークン
-
-> ⚠️ **重要**: .envファイルは.gitignoreに追加済みです。GitHubにコミットしないでください。
-
-## 実行方法
-
-### 基本実行
+### 3. 実行
 
 ```bash
-# promptfoo評価を実行
-promptfoo eval
-
-# または、npxで実行
-npx promptfoo@latest eval
+npx promptfoo eval
+npx promptfoo view
 ```
 
-### 結果の確認
+## 設定内容
 
-#### 1. Webダッシュボードで確認（推奨）
+- **プロンプト**: 5種類（基本、ベストプラクティス、リーダブルコード、整理後、具体的観点付き）
+- **モデル**: Claude Code、Codex
+- **テストケース**: 2個（Python、JavaScript）
+- **実行回数**: 各3回
 
-```bash
-# Webブラウザで結果を表示
-promptfoo view
+## ファイル構成
 
-# または
-npx promptfoo@latest view
 ```
-
-ブラウザが自動的に開き、以下のような情報が確認できます：
-- 各プロンプト × モデルの組み合わせの出力結果
-- 3回実行した結果の比較
-- 出力の揺れ（一貫性）
-
-#### 2. JSONファイルで確認
-
-```bash
-# 結果はprompfoo-results.jsonに保存されます
-cat promptfoo-results.json | jq .
+├── promptfooconfig.yaml    # promptfoo設定
+├── codex-provider.js        # Codex用カスタムプロバイダー
+├── package.json
+└── README.md
 ```
-
-#### 3. CSVでエクスポート
-
-```bash
-# CSVファイルとしてエクスポート
-promptfoo export --output results.csv
-```
-
-## 設定ファイルの説明
-
-### promptfooConfig.yaml
-
-メインの設定ファイルです。以下の構造で構成されています：
-
-```yaml
-prompts:           # 5種類のプロンプト定義
-providers:         # 2種類のモデル設定
-tests:             # 2個のテストケース
-commandLineOptions:
-  repeat: 3        # 各テストを3回実行
-```
-
-### カスタマイズ方法
-
-#### プロンプトを追加・変更
-
-`prompts`セクションで新しいプロンプトを追加できます：
-
-```yaml
-prompts:
-  - id: prompt-6-custom
-    label: "カスタムプロンプト"
-    config:
-      type: raw
-      content: |
-        あなたのカスタムプロンプト
-
-        コード:
-        {{code}}
-```
-
-#### モデルを変更
-
-`providers`セクションで使用するモデルを変更できます：
-
-```yaml
-providers:
-  # Claude 3 Opusを使用
-  - id: anthropic:claude-3-opus-20240229
-    label: "Claude 3 Opus"
-    config:
-      temperature: 0.7
-      max_tokens: 2000
-
-  # GPT-3.5 Turboを使用
-  - id: openai:gpt-3.5-turbo
-    label: "GPT-3.5 Turbo"
-    config:
-      temperature: 0.7
-      max_tokens: 2000
-```
-
-#### テストケースを追加
-
-`tests`セクションで新しいコードサンプルを追加できます：
-
-```yaml
-tests:
-  - description: "あなたのテストケース"
-    vars:
-      code: |
-        // あなたのコードサンプル
-        function example() {
-          return "hello";
-        }
-      readable_code_principles: |
-        1. 観点1
-        2. 観点2
-```
-
-#### 実行回数を変更
-
-`commandLineOptions.repeat`で実行回数を変更できます：
-
-```yaml
-commandLineOptions:
-  repeat: 5  # 5回実行に変更
-```
-
-## 結果の分析方法
-
-### 1. 人力評価
-
-Webダッシュボード（`promptfoo view`）で以下を確認：
-
-- **品質**: どのプロンプトが最も有用なレビューを生成しているか
-- **一貫性**: 3回の実行で出力がどの程度安定しているか
-- **モデル差**: Claude vs GPT-4でどのような違いがあるか
-
-### 2. 定量分析（オプション）
-
-JSONファイルから以下を計算できます：
-
-```bash
-# jqコマンドで結果を抽出
-jq '.results[] | {prompt: .prompt.label, provider: .provider.label, output: .response.output}' promptfoo-results.json
-```
-
-後処理スクリプトで以下の指標を計算することも可能：
-- 出力の長さ（トークン数、文字数）
-- 揺れの定量化（レーベンシュタイン距離など）
-- キーワードの出現頻度
 
 ## トラブルシューティング
 
-### 認証エラーが発生する
-
-#### サブスクリプション認証を使用している場合
+### 認証エラー
 
 ```bash
-# Claude Code: OAuthトークンが設定されているか確認
-echo $CLAUDE_CODE_OAUTH_TOKEN
+# Claude Code
+echo $CLAUDE_CODE_OAUTH_TOKEN  # 空なら再設定
 
-# トークンが空の場合、再生成
-claude setup-token
-
-# Codex: 認証状態を確認
+# Codex
 codex auth status
 ```
 
-#### API従量課金を使用している場合
+### promptfooが見つからない
 
 ```bash
-# 環境変数が設定されているか確認
-echo $ANTHROPIC_API_KEY
-echo $OPENAI_API_KEY
-
-# .envファイルが正しい場所にあるか確認
-ls -la .env
-```
-
-### promptfooコマンドが見つからない
-
-```bash
-# npxで直接実行
 npx promptfoo@latest eval
-
-# または、グローバルインストール
-npm install -g promptfoo
 ```
 
-### レート制限エラー
+## 補足
 
-APIのレート制限に引っかかった場合、`promptfooConfig.yaml`に以下を追加：
-
-```yaml
-commandLineOptions:
-  repeat: 3
-  maxConcurrency: 1  # 並列実行数を1に制限
-```
-
-### モデルが利用できないエラー
-
-使用するモデルへのアクセス権があるか確認してください：
-- Claude Code: Pro/Maxサブスクリプション または Anthropic API
-- Codex: ChatGPT Plus/Pro または OpenAI API
-
-## プロジェクト構成
-
-```
-ai-workflows/
-├── promptfooconfig.yaml    # promptfoo設定ファイル
-├── codex-provider.js        # Codex用カスタムプロバイダー
-├── package.json             # 依存関係
-├── README.md                # このファイル
-└── .env                     # 環境変数（要作成）
-```
-
-### カスタムプロバイダーについて
-
-**codex-provider.js** - Codex CLI を呼び出すカスタムプロバイダー
-
-promptfooは標準でCodex CLIをサポートしていないため、カスタムプロバイダーを実装しています。このプロバイダーは：
-
-- `codex exec -` コマンドを使用してCodex CLIを呼び出し
-- サブスクリプション認証（`codex auth`）を使用
-- promptfooのテストフレームワークと統合
-
-**実装の詳細:**
-- stdin経由でプロンプトを送信
-- stdout から結果を受信
-- エラーハンドリング付き
-
-## 次のステップ
-
-1. **評価実行**: `promptfoo eval` で評価を実行
-2. **結果確認**: `promptfoo view` でWebダッシュボードを開く
-3. **分析**: どのプロンプトが最も効果的かを判断
-4. **最適化**: 結果を元にプロンプトをさらに改善
-5. **本番適用**: 最適なプロンプトを実際のアプリケーションに適用
-
-## 参考リソース
-
-- [promptfoo公式ドキュメント](https://www.promptfoo.dev/)
-- [promptfoo Configuration](https://www.promptfoo.dev/docs/configuration/)
-- [promptfoo Providers](https://www.promptfoo.dev/docs/providers/)
-- [リーダブルコード](https://www.oreilly.co.jp/books/9784873115658/)
-
-## ライセンス
-
-MIT License
-
-## 貢献
-
-Issue、Pull Requestを歓迎します。
+- サブスクリプション: Claude Pro/Max ($20-200/月)、ChatGPT Plus/Pro ($20-200/月)
+- 代替: API従量課金（ANTHROPIC_API_KEY、OPENAI_API_KEY）約$3
+- promptfoo経由の実行もサブスクリプションの使用量にカウントされます
