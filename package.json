@@ -19,7 +19,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "promptfoo": "^0.100.0"
+    "promptfoo": "^0.119.3"
   },
   "engines": {
     "node": ">=18.0.0"
