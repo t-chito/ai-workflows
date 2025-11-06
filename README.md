@@ -44,56 +44,74 @@ npm install
 npm install -g promptfoo
 ```
 
-### 3. APIキーの設定
+### 3. 認証の設定
 
-環境変数にAPIキーを設定します。
+2つの認証方法があります：
+
+#### オプションA: サブスクリプション認証（推奨）
+
+Claude Pro/MaxまたはChatGPT Plus/Proのサブスクリプションを使用します。
+
+**Claude Codeの認証:**
+
+```bash
+# 1. Claude Code CLIでログイン
+claude login
+
+# 2. OAuthトークンを生成
+claude setup-token
+
+# 3. トークンを環境変数に設定
+export CLAUDE_CODE_OAUTH_TOKEN="生成されたトークン"
+```
+
+または、.envファイルに記載：
+```bash
+echo "CLAUDE_CODE_OAUTH_TOKEN=your-token-here" >> .env
+```
+
+**Codexの認証:**
+
+```bash
+# Codex CLIで認証（ブラウザが開きます）
+codex auth
+
+# 環境変数は自動的に設定されます
+```
+
+**サブスクリプションプラン:**
+- **Claude Code**: Pro ($20/月) または Max ($100-200/月)
+- **Codex**: ChatGPT Plus ($20/月) または Pro ($200/月)
+
+> ⚠️ **注意**: promptfoo経由での実行もサブスクリプションのusage限度にカウントされます。
+
+#### オプションB: API従量課金
+
+サブスクリプションの代わりに、API従量課金を使用できます（約$3程度で完了）。
 
 **Linux / macOS:**
 ```bash
-# Claude Code用（CLAUDE_API_KEYまたはCLAUDE_CODE_API_KEYのいずれか）
-export CLAUDE_API_KEY="your-claude-api-key"
-# または
-export CLAUDE_CODE_API_KEY="your-claude-code-api-key"
-
-# Codex用
+export ANTHROPIC_API_KEY="your-anthropic-api-key"
 export OPENAI_API_KEY="your-openai-api-key"
 ```
 
 **Windows (PowerShell):**
 ```powershell
-$env:CLAUDE_API_KEY="your-claude-api-key"
+$env:ANTHROPIC_API_KEY="your-anthropic-api-key"
 $env:OPENAI_API_KEY="your-openai-api-key"
 ```
 
-**または、.envファイルに記載（推奨）:**
+**または、.envファイルに記載:**
 ```bash
-# プロジェクトルートに.envファイルを作成
-echo "CLAUDE_API_KEY=your-claude-api-key" >> .env
-echo "OPENAI_API_KEY=your-openai-api-key" >> .env
+echo "ANTHROPIC_API_KEY=your-api-key" >> .env
+echo "OPENAI_API_KEY=your-api-key" >> .env
 ```
 
-> ⚠️ **注意**: .envファイルは.gitignoreに追加して、GitHubにコミットしないでください。
-
-### 4. サブスクリプション情報
-
-#### Claude Code
-- **Pro**: $20/月（10-40プロンプト/5時間）
-- **Max**: $100/月（5x Pro）または $200/月（20x Pro）
-- promptfoo経由でもusage限度にカウントされます
-
-#### Codex
-- **ChatGPT Plus**: $20/月（30-150メッセージ/5時間）
-- **ChatGPT Pro**: $200/月（300-1,500メッセージ/5時間）
-- promptfoo経由でもusage限度にカウントされます
-
-### 5. 代替オプション：従量課金API
-
-サブスクリプションではなく、従量課金APIを使用することもできます：
-
+**料金:**
 - **Anthropic API**: Claude Sonnet 4 - $3/1M入力トークン
 - **OpenAI API**: codex-mini-latest - $1.50/1M入力トークン
 
-大量テストを行う場合は、API従量課金の方が管理しやすい場合があります。
+> ⚠️ **重要**: .envファイルは.gitignoreに追加済みです。GitHubにコミットしないでください。
 
 ## 実行方法
 
@@ -245,7 +263,22 @@ jq '.results[] | {prompt: .prompt.label, provider: .provider.label, output: .res
 
 ## トラブルシューティング
 
-### APIキーが認識されない
+### 認証エラーが発生する
+
+#### サブスクリプション認証を使用している場合
+
+```bash
+# Claude Code: OAuthトークンが設定されているか確認
+echo $CLAUDE_CODE_OAUTH_TOKEN
+
+# トークンが空の場合、再生成
+claude setup-token
+
+# Codex: 認証状態を確認
+codex auth status
+```
+
+#### API従量課金を使用している場合
 
 ```bash
 # 環境変数が設定されているか確認
@@ -279,8 +312,27 @@ commandLineOptions:
 ### モデルが利用できないエラー
 
 使用するモデルへのアクセス権があるか確認してください：
-- Claude 3.5 Sonnet: Anthropic APIコンソールで確認
-- GPT-4: OpenAI APIでGPT-4へのアクセス権が必要
+- Claude Code: Pro/Maxサブスクリプション または Anthropic API
+- Codex: ChatGPT Plus/Pro または OpenAI API
+
+## 既知の制限事項
+
+### サブスクリプション認証について
+
+**重要**: promptfooは現在、TypeScript版のClaude Agent SDKを使用しており、`CLAUDE_CODE_OAUTH_TOKEN`のサポートが完全ではありません。
+
+**推奨される回避策:**
+1. **API従量課金を使用** - 最もシンプルで確実（約$3で完了）
+2. **Claude Code CLIを直接使用** - promptfooを使わず、カスタムスクリプトで実装
+
+```bash
+# カスタムスクリプトの例
+for prompt in prompts/*.txt; do
+  claude "$(cat $prompt)" < code.py
+done
+```
+
+このサンプルはサブスクリプション認証での動作を前提としていますが、実際にはAPI従量課金の方が確実に動作します。
 
 ## 次のステップ
 
