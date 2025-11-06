@@ -1,0 +1,171 @@
+# promptfoo設定ファイル
+# コードレビューのプロンプト評価用
+
+# プロンプト定義（5種類）
+prompts:
+  # 1. 基本的なコードレビュー
+  - id: prompt-1-basic
+    label: "基本レビュー"
+    config:
+      type: raw
+      content: |
+        以下のコードをレビューしてください。
+
+        コード:
+        {{code}}
+
+  # 2. ベストな方法でのコードレビュー
+  - id: prompt-2-best-practice
+    label: "ベストプラクティス"
+    config:
+      type: raw
+      content: |
+        あなたの思うベストな方法でコードレビューをしてください。
+
+        コード:
+        {{code}}
+
+  # 3. リーダブルコード準拠
+  - id: prompt-3-readable-code
+    label: "リーダブルコード準拠"
+    config:
+      type: raw
+      content: |
+        リーダブルコード準拠でコードレビューをしてください。
+
+        コード:
+        {{code}}
+
+  # 4. 内容を整理してからレビュー
+  - id: prompt-4-organize-first
+    label: "整理後レビュー"
+    config:
+      type: raw
+      content: |
+        コードレビューをしてください。
+        リーダブルコードに準拠してほしいので、内容を一度整理してから、
+        それに則ってコードレビューをしてください。
+
+        コード:
+        {{code}}
+
+  # 5. 具体的な観点を渡してレビュー
+  - id: prompt-5-specific-criteria
+    label: "具体的観点付き"
+    config:
+      type: raw
+      content: |
+        以下の観点に則ってコードレビューをしてください。
+
+        【レビュー観点】
+        {{readable_code_principles}}
+
+        コード:
+        {{code}}
+
+# モデル設定
+# 注: 実際に使用する際は、環境変数にAPIキーを設定してください
+# - ANTHROPIC_API_KEY: Anthropic APIキー
+# - OPENAI_API_KEY: OpenAI APIキー
+providers:
+  # Claude (Anthropic)
+  # Claude 3.5 Sonnet を使用
+  - id: anthropic:claude-3-5-sonnet-20241022
+    label: "Claude 3.5 Sonnet"
+    config:
+      temperature: 0.7
+      max_tokens: 2000
+
+  # OpenAI GPT-4
+  # Codexの後継として、GPT-4を使用
+  - id: openai:gpt-4
+    label: "GPT-4"
+    config:
+      temperature: 0.7
+      max_tokens: 2000
+
+# テストケース
+tests:
+  # テストケース1: 変数名が不明瞭なPython関数
+  - description: "不明瞭な変数名のPython関数"
+    vars:
+      code: |
+        def calc(x, y, z):
+            a = x + y
+            b = a * z
+            if b > 100:
+                return b - 10
+            else:
+                return b
+      readable_code_principles: |
+        1. 変数名は意図が明確であること
+           - 略語を避け、完全な単語を使う
+           - 変数の役割が名前から理解できる
+
+        2. 関数は単一責任であること
+           - 1つの関数は1つのことだけを行う
+           - 関数名が動作を正確に表現する
+
+        3. コメントは「なぜ」を説明すること
+           - コードが「何を」するかは読めば分かる
+           - 「なぜ」そうするかを説明する
+
+        4. マジックナンバーを避けること
+           - 数値リテラルに名前を付ける
+           - 定数として定義する
+
+        5. 深いネストを避けること
+           - ガード節を使って早期リターン
+           - 複雑な条件は関数に抽出
+
+  # テストケース2: エラーハンドリングが不十分なJavaScript関数
+  - description: "エラーハンドリング不足のJavaScript関数"
+    vars:
+      code: |
+        function processData(data) {
+          let result = data.map(item => {
+            return item.value * 2;
+          });
+          return result;
+        }
+      readable_code_principles: |
+        1. 変数名は意図が明確であること
+           - 略語を避け、完全な単語を使う
+           - 変数の役割が名前から理解できる
+
+        2. 関数は単一責任であること
+           - 1つの関数は1つのことだけを行う
+           - 関数名が動作を正確に表現する
+
+        3. コメントは「なぜ」を説明すること
+           - コードが「何を」するかは読めば分かる
+           - 「なぜ」そうするかを説明する
+
+        4. マジックナンバーを避けること
+           - 数値リテラルに名前を付ける
+           - 定数として定義する
+
+        5. 深いネストを避けること
+           - ガード節を使って早期リターン
+           - 複雑な条件は関数に抽出
+
+        6. エラーハンドリングを適切に行うこと
+           - null/undefined チェック
+           - 例外処理
+           - エッジケースへの対応
+
+# コマンドラインオプション
+commandLineOptions:
+  # 各テストを3回実行（出力の揺れを確認）
+  repeat: 3
+
+  # 並列実行数（APIレート制限に注意）
+  # maxConcurrency: 2
+
+# 出力設定
+outputPath: ./promptfoo-results.json
+
+# デフォルトのテスト設定
+# defaultTest:
+#   # LLM-as-a-Judgeは今回は使用しない（人力評価メイン）
+#   assert: []

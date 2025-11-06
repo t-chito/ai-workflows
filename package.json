@@ -1,0 +1,27 @@
+{
+  "name": "promptfoo-code-review-evaluation",
+  "version": "1.0.0",
+  "description": "promptfooを使用したコードレビュープロンプトの評価サンプル",
+  "main": "index.js",
+  "scripts": {
+    "eval": "promptfoo eval",
+    "view": "promptfoo view",
+    "export": "promptfoo export --output results.csv",
+    "init": "promptfoo init"
+  },
+  "keywords": [
+    "promptfoo",
+    "llm",
+    "evaluation",
+    "code-review",
+    "prompt-engineering"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "promptfoo": "^0.100.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
