@@ -4,7 +4,7 @@ promptfooを使用したコードレビュープロンプトの評価サンプ�
 
 ## 概要
 
-このプロジェクトでは、5種類のコードレビュープロンプトを2つのLLMモデル（Claude 3.5 Sonnet、GPT-4）で評価し、最適なプロンプト設計を見つけることを目的としています。
+このプロジェクトでは、5種類のコードレビュープロンプトを2つのLLMモデル（**Claude Code**、**Codex**）で評価し、最適なプロンプト設計を見つけることを目的としています。
 
 ### 評価対象
 
@@ -16,8 +16,8 @@ promptfooを使用したコードレビュープロンプトの評価サンプ�
 5. 具体的観点付き - 詳細な観点を提示してレビュー
 
 **モデル（2種類）:**
-- Claude 3.5 Sonnet (Anthropic)
-- GPT-4 (OpenAI)
+- **Claude Code** (Anthropic Claude Agent SDK)
+- **Codex** (OpenAI codex-mini-latest)
 
 **テストケース（2個）:**
 1. 変数名が不明瞭なPython関数
@@ -31,17 +31,17 @@ promptfooを使用したコードレビュープロンプトの評価サンプ�
 ### 1. 前提条件
 
 - Node.js 18以上がインストールされていること
-- Anthropic APIキーを取得していること
-- OpenAI APIキーを取得していること
+- Claude Code APIキー または Claude Pro/Maxサブスクリプション
+- OpenAI APIキー または ChatGPT Plus/Proサブスクリプション
 
-### 2. promptfooのインストール
+### 2. promptfooと依存関係のインストール
 
 ```bash
-# グローバルインストール（推奨）
-npm install -g promptfoo
+# プロジェクト内の依存関係をインストール
+npm install
 
-# または、npxで直接実行
-npx promptfoo@latest --version
+# または、グローバルインストール
+npm install -g promptfoo
 ```
 
 ### 3. APIキーの設定
@@ -50,32 +50,50 @@ npx promptfoo@latest --version
 
 **Linux / macOS:**
 ```bash
-export ANTHROPIC_API_KEY="your-anthropic-api-key"
+# Claude Code用（CLAUDE_API_KEYまたはCLAUDE_CODE_API_KEYのいずれか）
+export CLAUDE_API_KEY="your-claude-api-key"
+# または
+export CLAUDE_CODE_API_KEY="your-claude-code-api-key"
+
+# Codex用
 export OPENAI_API_KEY="your-openai-api-key"
 ```
 
 **Windows (PowerShell):**
 ```powershell
-$env:ANTHROPIC_API_KEY="your-anthropic-api-key"
+$env:CLAUDE_API_KEY="your-claude-api-key"
 $env:OPENAI_API_KEY="your-openai-api-key"
 ```
 
 **または、.envファイルに記載（推奨）:**
 ```bash
 # プロジェクトルートに.envファイルを作成
-echo "ANTHROPIC_API_KEY=your-anthropic-api-key" >> .env
+echo "CLAUDE_API_KEY=your-claude-api-key" >> .env
 echo "OPENAI_API_KEY=your-openai-api-key" >> .env
 ```
 
 > ⚠️ **注意**: .envファイルは.gitignoreに追加して、GitHubにコミットしないでください。
 
-### 4. 依存関係のインストール（オプション）
+### 4. サブスクリプション情報
 
-package.jsonを使用する場合：
+#### Claude Code
+- **Pro**: $20/月（10-40プロンプト/5時間）
+- **Max**: $100/月（5x Pro）または $200/月（20x Pro）
+- promptfoo経由でもusage限度にカウントされます
 
-```bash
-npm install
-```
+#### Codex
+- **ChatGPT Plus**: $20/月（30-150メッセージ/5時間）
+- **ChatGPT Pro**: $200/月（300-1,500メッセージ/5時間）
+- promptfoo経由でもusage限度にカウントされます
+
+### 5. 代替オプション：従量課金API
+
+サブスクリプションではなく、従量課金APIを使用することもできます：
+
+- **Anthropic API**: Claude Sonnet 4 - $3/1M入力トークン
+- **OpenAI API**: codex-mini-latest - $1.50/1M入力トークン
+
+大量テストを行う場合は、API従量課金の方が管理しやすい場合があります。
 
 ## 実行方法
 

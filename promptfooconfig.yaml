@@ -20,21 +20,23 @@ prompts:
 
 # モデル設定
 # 注: 実際に使用する際は、環境変数にAPIキーを設定してください
-# - ANTHROPIC_API_KEY: Anthropic APIキー
-# - OPENAI_API_KEY: OpenAI APIキー
+# - ANTHROPIC_API_KEY: Anthropic APIキー（Claude Code用）
+# - OPENAI_API_KEY: OpenAI APIキー（Codex用）
 providers:
-  # Claude (Anthropic)
-  # Claude 3.5 Sonnet を使用
-  - id: anthropic:messages:claude-3-5-sonnet-20241022
-    label: Claude 3.5 Sonnet
+  # Claude Code (Claude Agent SDK)
+  # サブスクリプション: Pro ($20/月) または Max ($100-200/月)
+  - id: anthropic:claude-agent-sdk
+    label: Claude Code
     config:
+      model: claude-sonnet-4-20250514  # またはエイリアス: sonnet
       temperature: 0.7
       max_tokens: 2000
+      # working_dir: ./  # 必要に応じて作業ディレクトリを指定
 
-  # OpenAI GPT-4
-  # Codexの後継として、GPT-4を使用
-  - id: openai:gpt-4
-    label: GPT-4
+  # Codex (OpenAI)
+  # サブスクリプション: ChatGPT Plus ($20/月) または Pro ($200/月)
+  - id: openai:codex-mini-latest
+    label: Codex
     config:
       temperature: 0.7
       max_tokens: 2000
