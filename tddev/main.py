@@ -17,10 +17,11 @@ import argparse
 import sys
 import yaml
 from pathlib import Path
+from typing import Optional
 from loguru import logger
 
-from utils.llm_client import LLMClient
-from orchestrator.tdd_workflow import TDDWorkflow
+from tddev.utils.llm_client import LLMClient
+from tddev.orchestrator.tdd_workflow import TDDWorkflow
 
 
 def setup_logging(level: str = "INFO", log_file: Optional[str] = None):
