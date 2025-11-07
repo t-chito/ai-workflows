@@ -22,6 +22,10 @@ ENV/
 *.swp
 *.swo
 
+# Environment files
+.env
+.env.local
+
 # TDDev output
 output/
 

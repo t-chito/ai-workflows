@@ -7,8 +7,26 @@ Based on arXiv:2509.25297v2 implementation.
 """
 
 import os
+from pathlib import Path
 from typing import List, Dict, Optional, Union
 from loguru import logger
+
+# Try to load .env file if python-dotenv is available
+try:
+    from dotenv import load_dotenv
+    # Look for .env in multiple locations
+    env_paths = [
+        Path.cwd() / ".env",
+        Path(__file__).parent.parent / ".env",
+        Path.home() / ".env"
+    ]
+    for env_path in env_paths:
+        if env_path.exists():
+            load_dotenv(env_path)
+            logger.debug(f"Loaded environment from {env_path}")
+            break
+except ImportError:
+    pass  # python-dotenv not installed, skip
 
 
 class LLMClient:
@@ -65,9 +83,14 @@ class LLMClient:
         api_key = os.getenv("ANTHROPIC_API_KEY")
         if not api_key:
             raise ValueError(
-                "ANTHROPIC_API_KEY not set.\n"
-                "Set it with: export ANTHROPIC_API_KEY='your-key'\n"
-                "Or add it to your environment"
+                "ANTHROPIC_API_KEY not set.\n\n"
+                "Option 1 - Use .env file (recommended):\n"
+                "  1. Create a .env file in your project directory\n"
+                "  2. Add: ANTHROPIC_API_KEY=your-api-key-here\n"
+                "  3. Run: pip install python-dotenv\n\n"
+                "Option 2 - Set environment variable:\n"
+                "  export ANTHROPIC_API_KEY='your-api-key'\n\n"
+                "Get your API key from: https://console.anthropic.com/"
             )
 
         self.client = anthropic.Anthropic(api_key=api_key)
@@ -86,8 +109,14 @@ class LLMClient:
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             raise ValueError(
-                "OPENAI_API_KEY not set.\n"
-                "Set it with: export OPENAI_API_KEY='your-key'"
+                "OPENAI_API_KEY not set.\n\n"
+                "Option 1 - Use .env file (recommended):\n"
+                "  1. Create a .env file in your project directory\n"
+                "  2. Add: OPENAI_API_KEY=your-api-key-here\n"
+                "  3. Run: pip install python-dotenv\n\n"
+                "Option 2 - Set environment variable:\n"
+                "  export OPENAI_API_KEY='your-api-key'\n\n"
+                "Get your API key from: https://platform.openai.com/api-keys"
             )
 
         self.client = openai.OpenAI(api_key=api_key)
