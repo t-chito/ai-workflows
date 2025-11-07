@@ -351,6 +351,9 @@ export default defineConfig({
             str(f.relative_to(self.fm.project_root)) for f in self.context_buffer
         ])
 
+        # Build feedback section
+        feedback_section = f"Testing Feedback:\n{feedback}\n" if feedback else ""
+
         prompt = f"""You are a software engineer working on a project.
 
 Available Files:
@@ -365,8 +368,7 @@ User Requirements:
 Detailed Requirements:
 {json.dumps(detailed_reqs, indent=2)[:1000]}...
 
-{f"Testing Feedback:\\n{feedback}" if feedback else ""}
-
+{feedback_section}
 Your task: Select only the files that are RELEVANT to implement or modify for the current requirements.
 
 Respond in the following XML format:
@@ -415,6 +417,12 @@ Only include files that need to be read or modified. Exclude build artifacts, no
         Returns:
             Complete development prompt
         """
+        # Build feedback instruction
+        if feedback:
+            feedback_instruction = f"Testing Feedback:\n{feedback}\n\nPlease fix the issues identified in the testing feedback."
+        else:
+            feedback_instruction = "Please implement the requirements."
+
         prompt = f"""You are a software engineer working on a web application project.
 
 <Context Buffer>
@@ -430,7 +438,7 @@ High-Level Requirements:
 Detailed Requirements:
 {json.dumps(detailed_reqs, indent=2)}
 
-{f"Testing Feedback:\\n{feedback}\\n\\nPlease fix the issues identified in the testing feedback." if feedback else "Please implement the requirements."}
+{feedback_instruction}
 
 Instructions:
 1. Generate or update files to meet the requirements
