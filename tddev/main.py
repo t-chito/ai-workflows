@@ -119,9 +119,9 @@ Examples:
 
     parser.add_argument(
         "--provider",
-        choices=["anthropic", "openai"],
+        choices=["claude-agent-sdk", "anthropic", "openai"],
         default="anthropic",
-        help="LLM provider (default: anthropic)"
+        help="LLM provider: claude-agent-sdk (subscription), anthropic (API key), openai (API key)"
     )
 
     parser.add_argument(

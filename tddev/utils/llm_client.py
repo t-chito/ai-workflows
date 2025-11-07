@@ -1,7 +1,9 @@
-"""LLM Client for TDDev framework - Claude Agent SDK compatible.
+"""LLM Client for TDDev framework with Claude Agent SDK support.
 
-Simplified LLM client that works seamlessly with Claude Agent SDK environment.
-Supports both Anthropic (Claude) and OpenAI (GPT) models.
+Supports multiple LLM providers:
+- claude-agent-sdk: Uses Claude Pro/Max subscription (no API key needed)
+- anthropic: Direct Anthropic API (requires ANTHROPIC_API_KEY)
+- openai: OpenAI API (requires OPENAI_API_KEY)
 
 Based on arXiv:2509.25297v2 implementation.
 """
@@ -32,8 +34,10 @@ except ImportError:
 class LLMClient:
     """Unified LLM client supporting multiple providers.
 
-    Designed to work with Claude Agent SDK environment while maintaining
-    compatibility with standard Anthropic and OpenAI APIs.
+    Providers:
+    - claude-agent-sdk: Uses Claude Pro/Max subscription (no API key needed, browser auth)
+    - anthropic: Anthropic API with API key (pay-as-you-go)
+    - openai: OpenAI API with API key (pay-as-you-go)
     """
 
     def __init__(
@@ -58,7 +62,9 @@ class LLMClient:
         self.client = None
 
         # Initialize based on provider
-        if self.provider in ["anthropic", "claude-agent-sdk"]:
+        if self.provider == "claude-agent-sdk":
+            self._init_claude_agent_sdk()
+        elif self.provider == "anthropic":
             self._init_anthropic()
         elif self.provider == "openai":
             self._init_openai()
@@ -122,6 +128,26 @@ class LLMClient:
         self.client = openai.OpenAI(api_key=api_key)
         logger.debug(f"OpenAI client initialized with model: {self.model}")
 
+    def _init_claude_agent_sdk(self):
+        """Initialize Claude Agent SDK client (uses subscription, no API key needed)."""
+        try:
+            from claude_agent_sdk import ClaudeAgentOptions
+            import asyncio
+        except ImportError:
+            raise ImportError(
+                "claude-agent-sdk package not installed.\n"
+                "Install it with: pip install claude-agent-sdk\n\n"
+                "This allows you to use your Claude Pro/Max subscription instead of API keys.\n"
+                "First run will open a browser for authentication."
+            )
+
+        # Store SDK options for later use
+        self.sdk_options = ClaudeAgentOptions(
+            model=self.model if self.model else None,
+        )
+        self.client = "claude-agent-sdk"  # Marker that we're using SDK
+        logger.debug(f"Claude Agent SDK initialized with model: {self.model}")
+
     def chat(
         self,
         messages: List[Dict[str, str]],
@@ -151,10 +177,67 @@ class LLMClient:
         temp = temperature if temperature is not None else self.temperature
         max_tok = max_tokens if max_tokens is not None else self.max_tokens
 
-        if self.provider in ["anthropic", "claude-agent-sdk"]:
+        if self.provider == "claude-agent-sdk":
+            return self._chat_claude_agent_sdk(messages, system, temp, max_tok, **kwargs)
+        elif self.provider == "anthropic":
             return self._chat_anthropic(messages, system, temp, max_tok, **kwargs)
         elif self.provider == "openai":
             return self._chat_openai(messages, system, temp, max_tok, **kwargs)
+
+    def _chat_claude_agent_sdk(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str],
+        temperature: float,
+        max_tokens: int,
+        **kwargs
+    ) -> str:
+        """Claude Agent SDK-specific chat completion (uses subscription)."""
+        from claude_agent_sdk import query
+        import asyncio
+
+        # Build prompt from messages
+        prompt_parts = []
+        if system:
+            prompt_parts.append(f"System: {system}\n")
+
+        for msg in messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            if role == "user":
+                prompt_parts.append(f"User: {content}")
+            elif role == "assistant":
+                prompt_parts.append(f"Assistant: {content}")
+
+        prompt = "\n\n".join(prompt_parts)
+
+        # Run async query in sync context
+        async def _async_query():
+            full_response = ""
+            async for message in query(prompt=prompt, options=self.sdk_options):
+                # Accumulate response text
+                if hasattr(message, 'content'):
+                    for block in message.content:
+                        if hasattr(block, 'text'):
+                            full_response += block.text
+            return full_response
+
+        try:
+            # Run the async function
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                response = loop.run_until_complete(_async_query())
+            finally:
+                loop.close()
+
+            if not response:
+                raise RuntimeError("Empty response from Claude Agent SDK")
+
+            return response
+        except Exception as e:
+            logger.error(f"Claude Agent SDK error: {e}")
+            raise RuntimeError(f"Failed to get response from Claude Agent SDK: {e}")
 
     def _chat_anthropic(
         self,
