@@ -1,0 +1,169 @@
+# TDDev Configuration
+# Based on arXiv:2509.25297v2
+
+# LLM Configuration
+llm:
+  # Primary model for agents
+  provider: "anthropic"  # Options: "anthropic", "openai"
+  model: "claude-sonnet-4-5-20250929"  # or "gpt-4.1"
+  temperature: 0
+  max_tokens: 8192
+
+  # API Keys (set via environment variables)
+  # ANTHROPIC_API_KEY
+  # OPENAI_API_KEY
+
+# Test Generation Agent Configuration
+test_generation:
+  requirement_decomposition:
+    enabled: true
+    model: "claude-sonnet-4-5-20250929"
+
+  requirement_elaboration:
+    enabled: true
+    model: "claude-sonnet-4-5-20250929"
+
+  test_case_generation:
+    enabled: true
+    model: "claude-sonnet-4-5-20250929"
+    use_soap_opera_testing: true
+
+# Development Agent Configuration
+development:
+  # Template selection (13 templates from Table 3)
+  templates:
+    - name: "expo-app"
+      description: "Cross-platform mobile app development"
+      path: "templates/expo-app"
+
+    - name: "basic-astro"
+      description: "Static website generation"
+      path: "templates/basic-astro"
+
+    - name: "nextjs-shadcn"
+      description: "Full-stack Next.js with shadcn/ui components"
+      path: "templates/nextjs-shadcn"
+
+    - name: "vite-shadcn"
+      description: "Vite with shadcn/ui components"
+      path: "templates/vite-shadcn"
+
+    - name: "qwik-typescript"
+      description: "Resumable applications"
+      path: "templates/qwik-typescript"
+
+    - name: "remix-typescript"
+      description: "Full-stack web applications"
+      path: "templates/remix-typescript"
+
+    - name: "slidev"
+      description: "Developer presentations using Markdown"
+      path: "templates/slidev"
+
+    - name: "sveltekit"
+      description: "Fast web applications"
+      path: "templates/sveltekit"
+
+    - name: "vanilla-vite"
+      description: "Minimal JavaScript projects"
+      path: "templates/vanilla-vite"
+
+    - name: "vite-react"
+      description: "React with TypeScript"
+      path: "templates/vite-react"
+
+    - name: "vite-typescript"
+      description: "Type-safe development"
+      path: "templates/vite-typescript"
+
+    - name: "vuejs"
+      description: "Vue applications"
+      path: "templates/vuejs"
+
+    - name: "angular"
+      description: "Angular applications with TypeScript"
+      path: "templates/angular"
+
+  # Context selection settings
+  context_selection:
+    max_files_in_context: 10
+    exclude_patterns:
+      - "node_modules/**"
+      - "dist/**"
+      - "build/**"
+      - ".git/**"
+      - "*.log"
+
+  # File editing mode
+  file_editing:
+    mode: "full_replacement"  # or "diff_based"
+    enable_file_locking: true
+
+# Testing Agent Configuration
+testing:
+  # Browser automation
+  browser:
+    engine: "browser-use"  # BrowserUse from paper
+    headless: true
+    timeout: 30000  # milliseconds
+
+  # Deployment verification
+  deployment:
+    process_manager: "pm2"
+    startup_timeout: 60  # seconds
+    health_check_retries: 3
+
+  # User simulation settings
+  user_simulation:
+    max_actions_per_test: 20
+    enable_error_handling: true
+    retry_on_failure: true
+    max_retries: 3
+
+  # Feedback construction
+  feedback:
+    include_screenshots: true
+    include_logs: true
+    verbose: true
+
+# TDD Workflow Configuration
+workflow:
+  max_iterations: 3  # From paper: best performance at 3 rounds
+  early_stopping:
+    enabled: true
+    min_pass_rate: 0.95  # Stop if 95% tests pass
+
+  # Save intermediate results
+  save_intermediate: true
+  output_dir: "output"
+
+# Evaluation Configuration
+evaluation:
+  metrics:
+    - "functionality_accuracy"
+    - "data_display_accuracy"
+    - "design_validation"
+    - "visual_similarity"
+    - "appearance_score"
+
+  # UI Agent for testing
+  ui_agent:
+    model: "claude-sonnet-4-5-20250929"
+    temperature: 0
+
+# Multimodal Support
+multimodal:
+  enabled: true
+  image_generation:
+    provider: "gemini"  # Gemini-2.5-Flash-Image from paper
+    model: "gemini-2.5-flash"
+
+  visual_similarity:
+    enabled: true
+    evaluator_model: "claude-sonnet-4-5-20250929"
+
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  file: "logs/tddev.log"
+  format: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}"
