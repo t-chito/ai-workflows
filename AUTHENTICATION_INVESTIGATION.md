@@ -160,6 +160,86 @@ npx promptfoo eval
 - 確実に動作する
 - サブスクリプションは使えない
 
+
+## 重要な発見：CLAUDE_CODE_OAUTH_TOKENの存在理由（2025-11-12 追記）
+
+### 疑問：なぜこのトークンが存在するのに使えないのか？
+
+`CLAUDE_CODE_OAUTH_TOKEN` は確かに存在し、有効です。では**なぜprompfooで使えないのか？**
+
+### 答え：promptfooの実装が不完全
+
+**Claude Agent SDK (`@anthropic-ai/claude-agent-sdk`) はサポートしている：**
+
+```javascript
+// @anthropic-ai/claude-agent-sdk/cli.js より
+authToken: process.env.ANTHROPIC_AUTH_TOKEN ||
+           process.env.CLAUDE_CODE_OAUTH_TOKEN ||
+           null
+```
+
+SDKのコードには `CLAUDE_CODE_OAUTH_TOKEN` を読み取る実装がある。
+
+**promptfooのラッパーはサポートしていない：**
+
+```javascript
+// node_modules/promptfoo/dist/src/providers/claude-agent-sdk.js:349
+getApiKey() {
+    return this.config?.apiKey || 
+           this.env?.ANTHROPIC_API_KEY || 
+           getEnvString('ANTHROPIC_API_KEY');
+}
+```
+
+promptfooの `anthropic:claude-agent-sdk` プロバイダーは：
+- ❌ `ANTHROPIC_API_KEY` しかチェックしない
+- ❌ `CLAUDE_CODE_OAUTH_TOKEN` を見ない
+- ❌ `apiKey` がないとエラーを投げる (line 123-124)
+
+### レイヤーの正確な整理
+
+```
+promptfoo claude-agent-sdk provider
+  ↓ (ANTHROPIC_API_KEY しか渡さない)
+Claude Agent SDK (@anthropic-ai/claude-agent-sdk)
+  ↓ (CLAUDE_CODE_OAUTH_TOKEN をサポートしているが受け取れない)
+Anthropic API (api.anthropic.com)
+  ↓ (OAuth 認証を拒否)
+```
+
+**問題は2箇所：**
+1. **promptfooのラッパー**: `CLAUDE_CODE_OAUTH_TOKEN` を渡していない
+2. **Anthropic API**: OAuth認証を受け付けない
+
+### 回避策の可能性
+
+promptfooのチェックを回避するために：
+
+```bash
+# トークンをAPI keyとして渡す
+export ANTHROPIC_API_KEY=$CLAUDE_CODE_OAUTH_TOKEN
+
+# promptfooconfig.yaml
+providers:
+  - id: anthropic:claude-agent-sdk
+    config:
+      model: sonnet
+      # apiKeyを指定しない → 環境変数から読む
+
+npx promptfoo eval
+```
+
+これで **promptfooのチェックはパス** しますが、**Anthropic APIが拒否** する可能性が高い。
+
+### 結論
+
+`CLAUDE_CODE_OAUTH_TOKEN` は：
+- ✅ Claude CLI用に存在
+- ✅ Claude Agent SDK内部でサポート
+- ✅ CI/CD、自動化用途で有効
+- ❌ promptfoo経由では使えない（ラッパーの実装不備）
+- ❌ api.anthropic.com が拒否（APIレベルの制限）
+
 ## 調査履歴
 
 ### 2025-11-06: 初回調査

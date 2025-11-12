@@ -29,13 +29,15 @@ prompts:
 # - codex auth で認証（サブスクリプション使用）
 # - または OPENAI_API_KEY: API従量課金（標準プロバイダー使用時）
 providers:
-  # Claude (カスタムプロバイダー - CLI直接呼び出し)
+  # Claude Agent SDK (組み込みプロバイダー - サブスクリプション認証テスト)
   # サブスクリプション: Pro ($20/月) または Max ($100-200/月)
-  # 認証: claude login（サブスクリプションのみ、環境変数不要）
-  # 注意: SDK経由ではなくCLI直接呼び出しのため、promptfoo組み込みプロバイダーの制限を回避
-  - id: file://./claude-cli-provider.js
-    label: Claude CLI
+  # 認証: claude login → claude setup-token → export CLAUDE_CODE_OAUTH_TOKEN=<token>
+  # 重要: apiKey を指定しないことで、SDKが CLAUDE_CODE_OAUTH_TOKEN を見る
+  - id: anthropic:claude-agent-sdk
+    label: Claude Agent SDK
     config:
+      model: sonnet
+      # apiKey を指定しない → SDKが環境変数から CLAUDE_CODE_OAUTH_TOKEN を読む
       temperature: 0.7
       max_tokens: 2000
 

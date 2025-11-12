@@ -35,10 +35,24 @@ npx promptfoo view
 
 認証情報はCLIが保存するため、環境変数は不要。
 
-## 重要な注意
+## 重要な発見
 
-**SDKを使う場合の制限**
+### なぜCLAUDE_CODE_OAUTH_TOKENが使えないのか？
 
-promptfoo組み込みの `anthropic:messages` プロバイダー（SDK経由）では、`CLAUDE_CODE_OAUTH_TOKEN` を設定しても `OAuth authentication is currently not supported` エラーが発生します。
+`CLAUDE_CODE_OAUTH_TOKEN` は有効なトークンですが、promptfooで使えません。
+
+**理由：**
+1. **Claude Agent SDK自体はサポート**: SDKのコードに `CLAUDE_CODE_OAUTH_TOKEN` を読み取る実装がある
+2. **promptfooのラッパーが非対応**: `anthropic:claude-agent-sdk` プロバイダーが `ANTHROPIC_API_KEY` しかチェックしない
+3. **Anthropic APIの制限**: `api.anthropic.com` がOAuth認証を拒否
+
+つまり、**2箇所で問題**があります：
+- promptfooの実装不備（`CLAUDE_CODE_OAUTH_TOKEN` を渡さない）
+- Anthropic APIサーバー側の制限（OAuth非対応）
+
+### 現実的な解決策
+
+- **CLI直接呼び出し**（このリポジトリの実装）
+- **API従量課金**（`ANTHROPIC_API_KEY` 使用）
 
 詳細は [AUTHENTICATION_INVESTIGATION.md](./AUTHENTICATION_INVESTIGATION.md) を参照。
