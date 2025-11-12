@@ -37,14 +37,17 @@ npx promptfoo view
 
 ## 重要な発見
 
-### なぜCLAUDE_CODE_OAUTH_TOKENが使えないのか？
+### promptfooのバグ：CLAUDE_CODE_OAUTH_TOKENが使えない
 
-`CLAUDE_CODE_OAUTH_TOKEN` は有効なトークンですが、promptfooで使えません。
+`CLAUDE_CODE_OAUTH_TOKEN` は有効なトークンですが、**promptfooの実装バグ**により使用できません。
 
-**理由：**
-1. **Claude Agent SDK自体はサポート**: SDKのコードに `CLAUDE_CODE_OAUTH_TOKEN` を読み取る実装がある
-2. **promptfooのラッパーが非対応**: `anthropic:claude-agent-sdk` プロバイダーが `ANTHROPIC_API_KEY` しかチェックしない
-3. **Anthropic APIの制限**: `api.anthropic.com` がOAuth認証を拒否
+**📋 詳細な技術レポート**: [PROMPTFOO_BUG_REPORT.md](./PROMPTFOO_BUG_REPORT.md)
+（バグの証拠、検証手順、Issue報告用テンプレートを含む包括的なドキュメント）
+
+**問題の要約**:
+1. **Claude Agent SDK自体はサポート**: SDKのコードに `CLAUDE_CODE_OAUTH_TOKEN` を読み取る実装がある ✅
+2. **promptfooのラッパーが非対応**: `anthropic:claude-agent-sdk` プロバイダーが `ANTHROPIC_API_KEY` しかチェックしない ❌
+3. **Anthropic APIの制限**: `api.anthropic.com` がOAuth認証を受け付けない ❌
 
 つまり、**2箇所で問題**があります：
 - promptfooの実装不備（`CLAUDE_CODE_OAUTH_TOKEN` を渡さない）
@@ -55,4 +58,6 @@ npx promptfoo view
 - **CLI直接呼び出し**（このリポジトリの実装）
 - **API従量課金**（`ANTHROPIC_API_KEY` 使用）
 
-詳細は [AUTHENTICATION_INVESTIGATION.md](./AUTHENTICATION_INVESTIGATION.md) を参照。
+**参考ドキュメント**:
+- **[PROMPTFOO_BUG_REPORT.md](./PROMPTFOO_BUG_REPORT.md)** - promptfooのバグ詳細レポート（Issue報告用）
+- **[AUTHENTICATION_INVESTIGATION.md](./AUTHENTICATION_INVESTIGATION.md)** - 認証レイヤーの調査結果
