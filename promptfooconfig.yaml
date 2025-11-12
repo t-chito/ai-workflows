@@ -29,18 +29,16 @@ prompts:
 # - codex auth で認証（サブスクリプション使用）
 # - または OPENAI_API_KEY: API従量課金（標準プロバイダー使用時）
 providers:
-  # Claude Code (カスタムプロバイダー - サブスクリプション認証対応)
-  # サブスクリプション: Pro ($20/月) または Max ($100-200/月)
-  # 認証: claude login → claude setup-token → export CLAUDE_CODE_OAUTH_TOKEN=<token>
-  # またはANTHROPIC_AUTH_TOKEN / ANTHROPIC_API_KEY も使用可能
-  - id: file://./claude-code-provider.js
+  # Claude Code (組み込みプロバイダー - API従量課金のみ)
+  # サブスクリプション認証は非対応（APIが "OAuth authentication is currently not supported" を返す）
+  # 認証: export ANTHROPIC_API_KEY="sk-ant-..."
+  - id: anthropic:messages:claude-sonnet-4-20250514
     label: Claude Code
     config:
-      model: claude-sonnet-4-20250514
       temperature: 0.7
       max_tokens: 2000
 
-  # Codex (カスタムプロバイダー経由でCLI呼び出し)
+  # Codex (カスタムプロバイダー - サブスクリプション認証対応)
   # サブスクリプション: ChatGPT Plus ($20/月) または Pro ($200/月)
   # 認証: codex auth（ブラウザ経由でログイン）
   - id: file://./codex-provider.js
