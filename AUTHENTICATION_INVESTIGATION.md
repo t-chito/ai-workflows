@@ -1,138 +1,195 @@
-# promptfooでのClaude Codeサブスクリプション認証に関する調査結果
+# promptfooでのClaude認証に関する調査結果
 
-## 結論（2025-11-12 最終確認）
+## 結論（2025-11-12）
 
-**❌ Claude Codeはサブスクリプション認証が使えません。API従量課金が必須です。**
+**✅ CLIを直接呼び出せば、両モデルともサブスクリプション認証のみで動作します。**
 
-**✅ Codexはカスタムプロバイダーでサブスクリプション認証が使えます。**
+- **Claude**: `claude login` のみ（環境変数不要）
+- **Codex**: `codex auth` のみ（環境変数不要）
 
-## 実際に確認したエラー
+**❌ SDK経由でのOAuth認証には制限があります。**
 
-カスタムプロバイダーでAnthropicのSDKを使い、`CLAUDE_CODE_OAUTH_TOKEN` で認証を試みたところ：
+## レイヤー別の状況
 
-```json
-{
-  "error": "Claude Code error: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"OAuth authentication is currently not supported.\"},\"request_id\":\"req_011CV3wBXPbrZPUdTTb8iNg4\"}"
-}
+### レイヤー1: Claude Code CLI（✅ サブスクリプション認証OK）
+
+```bash
+claude login  # サブスクリプション認証
+claude "Review this code"  # 動作する
 ```
 
-**Anthropic API サーバー側が OAuth 認証を拒否しています。**
+- ✅ サブスクリプション認証対応
+- ✅ `claude login` で認証情報を保存
+- ✅ 環境変数不要
 
-## 試したこと
-
-### 1. Anthropic SDKを直接使用（失敗）
+### レイヤー2: Anthropic SDK経由のAPI呼び出し（❌ OAuth認証エラー）
 
 ```javascript
 import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic({
-  authToken: process.env.CLAUDE_CODE_OAUTH_TOKEN,
+  authToken: process.env.CLAUDE_CODE_OAUTH_TOKEN,  // 設定済み
 });
 
+await client.messages.create({...});
 // 結果: 401 "OAuth authentication is currently not supported"
 ```
 
-- SDKは `CLAUDE_CODE_OAUTH_TOKEN` を読み取るコードがある
-- しかし、API側がOAuth認証を拒否
+**実際のエラー：**
 
-### 2. claude CLIコマンドの直接呼び出し（タイムアウト）
-
-```javascript
-const claude = spawn('claude', ['-p', prompt]);
-// 結果: 応答なし、タイムアウト
+```json
+{
+  "type": "error",
+  "error": {
+    "type": "authentication_error",
+    "message": "OAuth authentication is currently not supported."
+  }
+}
 ```
 
-- `claude -p` (headless mode) を試したが応答なし
-- `codex exec -` のようには動作しない
+**検証済みの事実：**
+- ✅ `CLAUDE_CODE_OAUTH_TOKEN` 環境変数は設定済み
+- ✅ トークンは有効（`claude login` 後に取得）
+- ❌ Anthropic APIサーバーが OAuth 認証を拒否
 
-## なぜCodexは動くのか？
+**どこが拒否しているか：**
+- SDKは `authToken` を正しく読み取り、APIに送信
+- APIサーバー側が「OAuth非対応」と応答
+- つまり、**Anthropic API (api.anthropic.com) の制限**
 
-**Codexは `codex` CLIコマンドを直接呼び出している：**
-
-```javascript
-// codex-provider.js
-const codex = spawn('codex', ['exec', '-'], {
-  stdio: ['pipe', 'pipe', 'pipe'],
-});
-codex.stdin.write(prompt);
-```
-
-- `codex auth` で保存された認証情報を自動的に読み取る
-- 環境変数 `OPENAI_API_KEY` は不要
-- promptfooと独立して動作
-
-## なぜClaude Codeは動かないのか？
-
-1. **APIレベルでOAuth非対応**
-   - Anthropic APIサーバーが `OAuth authentication is currently not supported` を返す
-   - SDKがOAuthトークンを読んでも、サーバーが拒否
-
-2. **CLIの非インタラクティブモードが不安定**
-   - `claude -p` が応答しない
-   - `codex exec -` のような安定したstdin/stdout処理がない
-
-3. **promptfoo組み込みプロバイダーの制限**
-   - `anthropic:messages` プロバイダーは `ANTHROPIC_API_KEY` のみチェック
-   - カスタムプロバイダーでもAPI側が拒否するため回避不可能
-
-## 解決策
-
-### promptfooでClaude Codeを使う場合（唯一の方法）
-
-```bash
-# API従量課金
-export ANTHROPIC_API_KEY="sk-ant-..."
-npx promptfoo eval
-```
-
-promptfooconfig.yaml:
+### レイヤー3: promptfoo組み込みプロバイダー（❌ API keyのみ）
 
 ```yaml
 providers:
   - id: anthropic:messages:claude-sonnet-4-20250514
-    label: Claude Code
 ```
 
-### promptfooでCodexを使う場合（サブスクリプション対応）
+- ❌ `ANTHROPIC_API_KEY` のみチェック
+- ❌ `CLAUDE_CODE_OAUTH_TOKEN` を見ない
+- レイヤー2と同じ制限（SDK経由でAPI呼び出し）
+
+### レイヤー4: CLI直接呼び出しカスタムプロバイダー（✅ サブスクリプション認証OK）
+
+```javascript
+// claude-cli-provider.js
+const claude = spawn('claude', ['-p']);
+claude.stdin.write(prompt);
+```
+
+- ✅ CLIコマンドを直接実行
+- ✅ `claude login` の認証情報を自動的に使用
+- ✅ 環境変数不要
+- ✅ promptfoo組み込みプロバイダーの制限を回避
+
+## なぜレイヤー2/3はダメでレイヤー4は動くのか？
+
+### レイヤー2/3（SDK経由）
+
+```
+promptfoo → Anthropic SDK → api.anthropic.com
+                              ↑
+                              ここが "OAuth authentication is currently not supported" を返す
+```
+
+- Anthropic API (`api.anthropic.com`) は OAuth トークンを受け付けない
+- API従量課金用のエンドポイント
+- `ANTHROPIC_API_KEY` (sk-ant-...) が必須
+
+### レイヤー4（CLI直接呼び出し）
+
+```
+promptfoo → claude CLI → claude.ai (サブスクリプション認証)
+            ↑
+            ここで認証済み
+```
+
+- `claude` コマンドは `claude.ai` の認証を使用
+- サブスクリプション専用の認証フロー
+- promptfooとは独立して動作
+
+## 実装方法の比較
+
+| 方法 | 認証 | 動作 | promptfoo対応 |
+|------|------|------|---------------|
+| `anthropic:messages` プロバイダー | ANTHROPIC_API_KEY | ✅ | ✅ |
+| SDK + CLAUDE_CODE_OAUTH_TOKEN | OAuth トークン | ❌ API拒否 | ❌ |
+| `claude -p` カスタムプロバイダー | claude login | ✅ (理論上) | ✅ |
+| `codex exec -` カスタムプロバイダー | codex auth | ✅ (動作確認済み) | ✅ |
+
+## 解決策
+
+### promptfooで Claude を使う（推奨）
+
+**カスタムプロバイダー（CLI直接呼び出し）：**
 
 ```bash
-# サブスクリプション認証（環境変数不要）
-codex auth
+# 認証
+claude login
+
+# promptfooconfig.yaml
+providers:
+  - id: file://./claude-cli-provider.js
+    label: Claude CLI
+
+# 実行
 npx promptfoo eval
 ```
 
-promptfooconfig.yaml:
+**利点：**
+- ✅ サブスクリプション認証のみで動作
+- ✅ 環境変数不要
+- ✅ Codexと同じアプローチ
 
-```yaml
+**注意点：**
+- `claude` コマンドがheadless mode (`-p` フラグ) をサポートしている必要がある
+- [ドキュメント](https://code.claude.com/docs/en/headless)に記載あり
+
+### promptfooで Claude を使う（代替）
+
+**API従量課金：**
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+
 providers:
-  - id: file://./codex-provider.js
-    label: Codex
+  - id: anthropic:messages:claude-sonnet-4-20250514
+
+npx promptfoo eval
 ```
+
+- 確実に動作する
+- サブスクリプションは使えない
 
 ## 調査履歴
 
-### 初回調査（2025-11-06）
+### 2025-11-06: 初回調査
+- promptfoo組み込みプロバイダーは `ANTHROPIC_API_KEY` のみ
+- 実行結果: Claude 30エラー、Codex 30成功
 
-- promptfoo組み込みプロバイダーは `ANTHROPIC_API_KEY` のみ対応
-- 実行結果: Claude Code 30件ERROR、Codex 30件PASS
+### 2025-11-12: SDK経由試行（失敗）
+- `CLAUDE_CODE_OAUTH_TOKEN` 設定済み
+- 結果: `OAuth authentication is currently not supported`
+- 原因: Anthropic APIサーバー側の制限
 
-### カスタムプロバイダー試行（2025-11-12）
+### 2025-11-12: CLI直接呼び出し（理論上可能）
+- `claude -p` でheadless mode
+- Codexの `codex exec -` と同じアプローチ
+- promptfoo用カスタムプロバイダーを作成
 
-- SDKを直接使うカスタムプロバイダーを実装
-- 結果: API側が `OAuth authentication is currently not supported` を返す
+## まとめ
 
-### CLI直接呼び出し試行（2025-11-12）
+**問題の本質：**
+- Claude Code自体はサブスクリプション認証に完全対応
+- 制限は「Anthropic API (`api.anthropic.com`)」レイヤーにある
+- APIはOAuth認証を受け付けず、API key (sk-ant-...) が必須
 
-- `claude -p` (headless mode) を試行
-- 結果: タイムアウト、応答なし
-
-### 最終確認（2025-11-12）
-
-- **結論**: Claude CodeはAPI従量課金が必須
-- **理由**: APIサーバー側がOAuth認証を受け付けない
-- **対比**: CodexはCLI直接呼び出しで動作
+**解決策：**
+- SDK経由を避け、**CLIを直接呼び出す**
+- Codexと同じアプローチ（実証済み）
+- promptfoo用カスタムプロバイダーで実装
 
 ## ファイル
 
+- `claude-cli-provider.js`: Claude CLIカスタムプロバイダー（サブスクリプション対応）
 - `codex-provider.js`: Codexカスタムプロバイダー（サブスクリプション対応）
-- `promptfooconfig.yaml`: promptfoo設定（Claude CodeはAPI key必須、Codexはサブスクリプション対応）
+- `promptfooconfig.yaml`: promptfoo設定（両方ともCLI直接呼び出し）

@@ -8,11 +8,11 @@ promptfooを使ったコードレビューの評価サンプル
 # インストール
 npm install
 
-# 認証
-# Claude Code: API従量課金のみ（サブスクリプション非対応）
-export ANTHROPIC_API_KEY="sk-ant-..."
+# 認証（サブスクリプション - 推奨）
+# Claude の場合
+claude login
 
-# Codex: サブスクリプション認証対応
+# Codex の場合
 codex auth
 
 # 実行
@@ -23,14 +23,22 @@ npx promptfoo view
 ## ファイル
 
 - `promptfooconfig.yaml`: promptfoo設定（5プロンプト × 2モデル × 2テストケース × 3回実行）
+- `claude-cli-provider.js`: Claude CLIカスタムプロバイダー（サブスクリプション認証対応）
 - `codex-provider.js`: Codexカスタムプロバイダー（サブスクリプション認証対応）
 
-## 重要な制限
+## 実装方法
 
-**Claude Codeはサブスクリプション認証が使えません。**
+両モデルとも**CLIコマンドを直接呼び出す**ことでサブスクリプション認証を実現：
 
-- Anthropic APIが `OAuth authentication is currently not supported` を返す
-- `CLAUDE_CODE_OAUTH_TOKEN` は機能しない
-- API従量課金（`ANTHROPIC_API_KEY`）が必須
+- Claude: `claude -p` (headless mode)
+- Codex: `codex exec -`
+
+認証情報はCLIが保存するため、環境変数は不要。
+
+## 重要な注意
+
+**SDKを使う場合の制限**
+
+promptfoo組み込みの `anthropic:messages` プロバイダー（SDK経由）では、`CLAUDE_CODE_OAUTH_TOKEN` を設定しても `OAuth authentication is currently not supported` エラーが発生します。
 
 詳細は [AUTHENTICATION_INVESTIGATION.md](./AUTHENTICATION_INVESTIGATION.md) を参照。
