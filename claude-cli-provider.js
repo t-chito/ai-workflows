@@ -45,10 +45,10 @@ export default class ClaudeCliProvider {
 
   async executeClaude(prompt) {
     return new Promise((resolve, reject) => {
-      // Use 'claude -p' for headless/non-interactive mode
-      // Pipe input via stdin, similar to: echo "prompt" | claude -p
-      const claude = spawn('claude', ['-p'], {
-        stdio: ['pipe', 'pipe', 'pipe'],
+      // Use 'claude -p "prompt"' - pass prompt as argument
+      // Based on docs: claude -p "your query"
+      const claude = spawn('claude', ['-p', prompt], {
+        stdio: ['inherit', 'pipe', 'pipe'],
       });
 
       let stdout = '';
@@ -64,7 +64,8 @@ export default class ClaudeCliProvider {
 
       claude.on('close', (code) => {
         if (code !== 0) {
-          reject(new Error(`Claude exited with code ${code}: ${stderr}`));
+          const errorMsg = stderr || '(no stderr output)';
+          reject(new Error(`Claude exited with code ${code}: ${errorMsg}`));
         } else {
           resolve(stdout.trim());
         }
@@ -73,11 +74,6 @@ export default class ClaudeCliProvider {
       claude.on('error', (error) => {
         reject(new Error(`Failed to spawn claude: ${error.message}`));
       });
-
-      // Write prompt to stdin and close
-      // This simulates: echo "prompt" | claude -p
-      claude.stdin.write(prompt);
-      claude.stdin.end();
     });
   }
 
