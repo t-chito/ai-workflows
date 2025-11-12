@@ -1,112 +1,129 @@
 # promptfooでのClaude Codeサブスクリプション認証に関する調査結果
 
-## 結論
+## 結論（2025-11-12 更新）
 
-**promptfooでClaude Codeのサブスクリプション認証（`CLAUDE_CODE_OAUTH_TOKEN`）は使えません。**
+**✅ カスタムプロバイダーを使えばサブスクリプション認証が使えます！**
 
-API従量課金（`ANTHROPIC_API_KEY`）が必須です。
+promptfooの組み込みプロバイダーでは `ANTHROPIC_API_KEY` が必須ですが、
+カスタムプロバイダーでAnthropicのSDKを直接呼び出すことで `CLAUDE_CODE_OAUTH_TOKEN` が使えます。
 
-## ファクト
+## 解決策
 
-### 1. Claude Agent SDK (TypeScript版) の制限
+### 1. カスタムプロバイダーの実装（推奨）
 
-**ソース**: [GitHub Issue #6536](https://github.com/anthropics/claude-code/issues/6536)
+`claude-code-provider.js` を作成：
 
-公式の説明（issue内のコメントより）：
-> "The SDK is designed for programmatic use (building applications, scripts, agents, etc.). This type of usage is tied to the Anthropic API, which is billed based on token usage and requires a traditional API key."
+```javascript
+import Anthropic from '@anthropic-ai/sdk';
 
-- **サポートする環境変数**: `ANTHROPIC_API_KEY` のみ
-- **サポートしない環境変数**: `CLAUDE_CODE_OAUTH_TOKEN`
-- **理由**: SDKは「プログラマティックな使用」用に設計されており、API従量課金が前提
+export default class ClaudeCodeProvider {
+  constructor(options = {}) {
+    this.client = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY || null,
+      authToken: process.env.ANTHROPIC_AUTH_TOKEN ||
+                 process.env.CLAUDE_CODE_OAUTH_TOKEN ||
+                 null,
+      dangerouslyAllowBrowser: false,
+    });
+  }
+  // ... callApi() implementation
+}
+```
 
-### 2. promptfooの実装
+promptfooconfig.yaml で使用：
 
-**ソース**: promptfooのソースコード `node_modules/promptfoo/dist/src/providers/claude-agent-sdk.js:349`
+```yaml
+providers:
+  - id: file://./claude-code-provider.js
+    label: Claude Code
+    config:
+      model: claude-sonnet-4-20250514
+```
+
+認証：
+
+```bash
+claude login
+claude setup-token
+export CLAUDE_CODE_OAUTH_TOKEN="<token>"
+npx promptfoo eval
+```
+
+### 2. API従量課金（代替手段）
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-api03-..."
+npx promptfoo eval
+```
+
+## 背景：promptfoo組み込みプロバイダーの制限
+
+### 問題
+
+promptfooの組み込み `anthropic:claude-agent-sdk` プロバイダーは `CLAUDE_CODE_OAUTH_TOKEN` をサポートしていません。
+
+### 根本原因
+
+**ソース**: `node_modules/promptfoo/dist/src/providers/claude-agent-sdk.js:349`
 
 ```javascript
 getApiKey() {
-    return this.config?.apiKey || this.env?.ANTHROPIC_API_KEY || getEnvString('ANTHROPIC_API_KEY');
+    return this.config?.apiKey ||
+           this.env?.ANTHROPIC_API_KEY ||
+           getEnvString('ANTHROPIC_API_KEY');
 }
 ```
 
 - `ANTHROPIC_API_KEY` のみをチェック
 - `CLAUDE_CODE_OAUTH_TOKEN` はチェックしていない
 
-### 3. promptfoo公式ドキュメント
-
-**ソース**: [promptfoo公式ドキュメント](https://www.promptfoo.dev/docs/providers/claude-agent-sdk/)
-
-> "The easiest way to get started is with an Anthropic API key. You can set it with the ANTHROPIC_API_KEY environment variable..."
-
-`CLAUDE_CODE_OAUTH_TOKEN` についての記載なし。
-
 ## 認証の区別
 
-### Claude CLI（`claude`コマンド）
-- ✅ サブスクリプション認証可能
-- ✅ `CLAUDE_CODE_OAUTH_TOKEN` 使用可能
-- 用途: インタラクティブな使用
+### Claude Agent SDK（Anthropic公式SDK）
+- ✅ **サブスクリプション認証対応**: `CLAUDE_CODE_OAUTH_TOKEN`、`ANTHROPIC_AUTH_TOKEN` をサポート
+- ✅ API従量課金対応: `ANTHROPIC_API_KEY` をサポート
+- **ソース**: `node_modules/@anthropic-ai/claude-agent-sdk/cli.js` に両方の環境変数チェックが存在
 
-### Claude Agent SDK（TypeScript/Python）
-- ❌ サブスクリプション認証不可
-- ✅ `ANTHROPIC_API_KEY` のみ
-- 用途: プログラマティックな使用（API従量課金）
+### promptfoo組み込みプロバイダー
+- ❌ サブスクリプション認証非対応
+- ✅ API従量課金のみ: `ANTHROPIC_API_KEY`
 
-### promptfoo
-- Claude Agent SDKを使用
-- ❌ サブスクリプション認証不可
-- ✅ `ANTHROPIC_API_KEY` のみ
+### カスタムプロバイダー（このリポジトリの実装）
+- ✅ **サブスクリプション認証対応**: `CLAUDE_CODE_OAUTH_TOKEN` 使用可能
+- ✅ API従量課金対応: `ANTHROPIC_API_KEY` 使用可能
+- SDKを直接呼び出すため、SDKの全機能を利用可能
 
-## エラーの原因
+## Codexのカスタムプロバイダー
 
-promptfooで実行時に表示されるエラー：
-```
-Error: Anthropic API key is not set.
-Use CLAUDE_CODE_OAUTH_TOKEN or CLAUDE_CODE_API_KEY environment variable
-```
+Codexも同様にカスタムプロバイダーでサブスクリプション認証を実現：
 
-このエラーメッセージは**誤解を招く**：
-- エラーメッセージには `CLAUDE_CODE_OAUTH_TOKEN` が記載されている
-- しかし、実際には `ANTHROPIC_API_KEY` のみがサポートされている
-- エラーメッセージはClaude Agent SDK側から来ている可能性があるが、実際には機能しない
+```javascript
+import { spawn } from 'child_process';
 
-## 実際の動作確認
-
-promptfooで実行した結果：
-- **Claude Code**: 30件すべてERROR（ANTHROPIC_API_KEYが未設定）
-- **Codex**: 30件すべてPASS（カスタムプロバイダー経由で動作）
-
-## 解決策
-
-### promptfooでClaude Codeを使う場合
-
-```bash
-# API従量課金を使用（唯一の方法）
-export ANTHROPIC_API_KEY="sk-ant-api03-..."
-npx promptfoo eval
+export default class CodexProvider {
+  async callApi(prompt) {
+    const codex = spawn('codex', ['exec', '-']);
+    codex.stdin.write(prompt);
+    codex.stdin.end();
+    // ... output handling
+  }
+}
 ```
 
-**料金**: 約$2-3（60回実行、入力60K + 出力120Kトークン想定）
+## 調査履歴
 
-### サブスクリプションを使いたい場合
+### 初回調査（2025-11-06）
 
-Claude CLIを直接呼び出すカスタムスクリプトが必要：
-```bash
-# claude CLIなら動作する
-claude login
-claude "プロンプト" < code.py
-```
+- promptfoo組み込みプロバイダーは `ANTHROPIC_API_KEY` のみ対応
+- 実行結果: Claude Code 30件ERROR、Codex 30件PASS（カスタムプロバイダー）
 
-ただし、promptfooの機能（マトリクス比較、Web UI）は使えない。
+### 解決（2025-11-12）
 
-## 調査日時
+- カスタムプロバイダーでSDKを直接呼び出すことで解決
+- 両方のモデルでサブスクリプション認証が使用可能に
 
-2025-11-06
+## ファイル
 
-## 調査方法
-
-1. promptfooのソースコード実装確認
-2. Claude Agent SDK TypeScript版の動作確認
-3. GitHub Issue #6536の公式コメント確認
-4. promptfoo公式ドキュメント確認
-5. 実際の実行結果確認（30エラー）
+- `claude-code-provider.js`: Claude Codeカスタムプロバイダー（サブスクリプション対応）
+- `codex-provider.js`: Codexカスタムプロバイダー（サブスクリプション対応）
+- `promptfooconfig.yaml`: promptfoo設定（カスタムプロバイダー使用）
