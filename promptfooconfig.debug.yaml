@@ -1,0 +1,22 @@
+# promptfoo デバッグ用設定（最小構成）
+# 使い方: npx promptfoo eval -c promptfooconfig.debug.yaml
+
+providers:
+  # Claude CLI のみテスト
+  - id: file://./claude-cli-provider.js
+    label: Claude CLI
+
+# プロンプトは1つだけ
+prompts:
+  - "以下のコードをレビューしてください：\n\n{{code}}"
+
+# テストケースも1つだけ
+tests:
+  - description: "簡単なテスト"
+    vars:
+      code: |
+        def hello():
+            print("hello")
+
+# repeat なし（1回のみ実行）
+# 合計: 1プロンプト × 1モデル × 1テストケース = 1回の評価
