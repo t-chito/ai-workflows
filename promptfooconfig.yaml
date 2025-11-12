@@ -1,0 +1,136 @@
+# promptfoo設定ファイル
+# コードレビューのプロンプト評価用
+
+# プロンプト定義（5種類）
+prompts:
+  # 1. 基本的なコードレビュー
+  - "以下のコードをレビューしてください。\n\nコード:\n{{code}}"
+
+  # 2. ベストな方法でのコードレビュー
+  - "あなたの思うベストな方法でコードレビューをしてください。\n\nコード:\n{{code}}"
+
+  # 3. リーダブルコード準拠
+  - "リーダブルコード準拠でコードレビューをしてください。\n\nコード:\n{{code}}"
+
+  # 4. 内容を整理してからレビュー
+  - "コードレビューをしてください。リーダブルコードに準拠してほしいので、内容を一度整理してから、それに則ってコードレビューをしてください。\n\nコード:\n{{code}}"
+
+  # 5. 具体的な観点を渡してレビュー
+  - "以下の観点に則ってコードレビューをしてください。\n\n【レビュー観点】\n{{readable_code_principles}}\n\nコード:\n{{code}}"
+
+# モデル設定
+#
+# Claude Code: サブスクリプション認証対応
+# - CLAUDE_CODE_OAUTH_TOKEN: Claude Pro/Max サブスクリプション用トークン
+#   取得方法: claude setup-token を実行
+# - または ANTHROPIC_API_KEY: API従量課金
+#
+# Codex: カスタムプロバイダー経由でCLI呼び出し
+# - codex auth で認証（サブスクリプション使用）
+# - または OPENAI_API_KEY: API従量課金（標準プロバイダー使用時）
+providers:
+  # Claude Code (Claude Agent SDK)
+  # サブスクリプション: Pro ($20/月) または Max ($100-200/月)
+  # 認証: claude login → claude setup-token → CLAUDE_CODE_OAUTH_TOKEN
+  - id: anthropic:claude-agent-sdk
+    label: Claude Code
+    config:
+      model: claude-sonnet-4-20250514  # またはエイリアス: sonnet
+      temperature: 0.7
+      max_tokens: 2000
+      # working_dir: ./  # 必要に応じて作業ディレクトリを指定
+
+  # Codex (カスタムプロバイダー経由でCLI呼び出し)
+  # サブスクリプション: ChatGPT Plus ($20/月) または Pro ($200/月)
+  # 認証: codex auth（ブラウザ経由でログイン）
+  - id: file://./codex-provider.js
+    label: Codex
+    config:
+      temperature: 0.7
+      max_tokens: 2000
+
+# テストケース
+tests:
+  # テストケース1: 変数名が不明瞭なPython関数
+  - description: "不明瞭な変数名のPython関数"
+    vars:
+      code: |
+        def calc(x, y, z):
+            a = x + y
+            b = a * z
+            if b > 100:
+                return b - 10
+            else:
+                return b
+      readable_code_principles: |
+        1. 変数名は意図が明確であること
+           - 略語を避け、完全な単語を使う
+           - 変数の役割が名前から理解できる
+
+        2. 関数は単一責任であること
+           - 1つの関数は1つのことだけを行う
+           - 関数名が動作を正確に表現する
+
+        3. コメントは「なぜ」を説明すること
+           - コードが「何を」するかは読めば分かる
+           - 「なぜ」そうするかを説明する
+
+        4. マジックナンバーを避けること
+           - 数値リテラルに名前を付ける
+           - 定数として定義する
+
+        5. 深いネストを避けること
+           - ガード節を使って早期リターン
+           - 複雑な条件は関数に抽出
+
+  # テストケース2: エラーハンドリングが不十分なJavaScript関数
+  - description: "エラーハンドリング不足のJavaScript関数"
+    vars:
+      code: |
+        function processData(data) {
+          let result = data.map(item => {
+            return item.value * 2;
+          });
+          return result;
+        }
+      readable_code_principles: |
+        1. 変数名は意図が明確であること
+           - 略語を避け、完全な単語を使う
+           - 変数の役割が名前から理解できる
+
+        2. 関数は単一責任であること
+           - 1つの関数は1つのことだけを行う
+           - 関数名が動作を正確に表現する
+
+        3. コメントは「なぜ」を説明すること
+           - コードが「何を」するかは読めば分かる
+           - 「なぜ」そうするかを説明する
+
+        4. マジックナンバーを避けること
+           - 数値リテラルに名前を付ける
+           - 定数として定義する
+
+        5. 深いネストを避けること
+           - ガード節を使って早期リターン
+           - 複雑な条件は関数に抽出
+
+        6. エラーハンドリングを適切に行うこと
+           - null/undefined チェック
+           - 例外処理
+           - エッジケースへの対応
+
+# コマンドラインオプション
+commandLineOptions:
+  # 各テストを3回実行（出力の揺れを確認）
+  repeat: 3
+
+  # 並列実行数（APIレート制限に注意）
+  # maxConcurrency: 2
+
+# 出力設定
+outputPath: ./promptfoo-results.json
+
+# デフォルトのテスト設定
+# defaultTest:
+#   # LLM-as-a-Judgeは今回は使用しない（人力評価メイン）
+#   assert: []
